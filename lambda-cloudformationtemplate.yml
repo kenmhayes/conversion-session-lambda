@@ -1,0 +1,73 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Creates lambda function and S3 bucket necessary for the file conversion functionality
+
+Parameters:
+  SessionTableName:
+    Type: String
+    Default: 'FileConversionSessions'
+  CreateSessionLambdaFunctionName:
+    Type: String
+    Default: 'CreateSession'
+  LambdaSourceBucket:
+    Type: String
+    Default: 'code-artifacts-omni-file-converter'
+  LambdaSourceKey:
+    Type: String
+    Default: 'ConversionSessionLambda-0.1.0.zip'
+
+Resources:
+  LambdaExecutionRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: 'lambda.amazonaws.com'
+            Action:
+              - 'sts:AssumeRole'
+      Policies:
+        - PolicyName: 'SessionTableDynamoDB'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'dynamodb:GetItem'
+                  - 'dynamodb:PutItem'
+                  - 'dynamodb:UpdateItem'
+                  - 'dynamodb:Query'
+                  - 'dynamodb:Scan'
+                Resource: !Sub 'arn:aws:dynamodb:*:*:table/${SessionTableName}'
+        - PolicyName: 'CloudWatchLogs'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'logs:CreateLogGroup'
+                Resource: !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*'
+              - Effect: Allow
+                Action:
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                Resource: !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*'
+  CreateSessionLambdaFunction:
+    Type: 'AWS::Lambda::Function'
+    DependsOn: 'LambdaExecutionRole'
+    Properties:
+      Code:
+        S3Bucket: !Ref LambdaSourceBucket
+        S3Key: !Ref LambdaSourceKey
+      Description: 'Creates a session of a file conversion request'
+      Handler: 'conversionsession.handler.CreateSessionHandler::handleRequest'
+      FunctionName: !Ref CreateSessionLambdaFunctionName
+      MemorySize: 1024
+      Role: !GetAtt 'LambdaExecutionRole.Arn'
+      Runtime: 'java11'
+      Timeout: 300
+
+
+
