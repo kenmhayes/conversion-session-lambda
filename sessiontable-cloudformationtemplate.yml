@@ -12,29 +12,29 @@ Resources:
     Type: 'AWS::DynamoDB::Table'
     Properties:
       AttributeDefinitions:
-        - AttributeName: 'SessionId'
+        - AttributeName: 'id'
           AttributeType: 'S'
-        - AttributeName: 'EmailAddress'
+        - AttributeName: 'emailAddress'
           AttributeType: 'S'
       GlobalSecondaryIndexes:
         - IndexName: 'Email'
           KeySchema:
-            - AttributeName: 'EmailAddress'
+            - AttributeName: 'emailAddress'
               KeyType: 'HASH'
           Projection:
             NonKeyAttributes:
-              - 'SessionId'
+              - 'id'
             ProjectionType: 'INCLUDE'
           ProvisionedThroughput:
             ReadCapacityUnits: 5
             WriteCapacityUnits: 5
       KeySchema:
-        - AttributeName: 'SessionId'
+        - AttributeName: 'id'
           KeyType: 'HASH'
       ProvisionedThroughput:
         ReadCapacityUnits: 5
         WriteCapacityUnits: 5
       TableName: !Ref DynamoDBSessionTableName
       TimeToLiveSpecification:
-        AttributeName: 'ExpirationTime'
+        AttributeName: 'expirationTime'
         Enabled: True

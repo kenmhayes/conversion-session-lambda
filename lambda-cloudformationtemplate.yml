@@ -62,6 +62,9 @@ Resources:
         S3Bucket: !Ref LambdaSourceBucket
         S3Key: !Ref LambdaSourceKey
       Description: 'Creates a session of a file conversion request'
+      Environment:
+        Variables:
+          SessionTableName: !Ref SessionTableName
       Handler: 'conversionsession.handler.CreateSessionHandler::handleRequest'
       FunctionName: !Ref CreateSessionLambdaFunctionName
       MemorySize: 1024
