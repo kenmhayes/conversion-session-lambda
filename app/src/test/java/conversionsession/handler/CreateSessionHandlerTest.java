@@ -6,6 +6,7 @@ import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.google.common.collect.Maps;
 import conversionsession.dagger.HandlerComponent;
+import conversionsession.model.ConversionRequest;
 import conversionsession.model.Session;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,17 +21,20 @@ public class CreateSessionHandlerTest {
     private Context mockContext;
     private LambdaLogger mockLambdaLogger;
     private DynamoDbTable<Session> mockSessionTable;
+    private DynamoDbTable<ConversionRequest> mockConversionRequestTable;
 
     @BeforeEach
     public void setupTests() {
         this.mockContext = mock(Context.class);
         this.mockLambdaLogger = mock(LambdaLogger.class);
         this.mockSessionTable = mock(DynamoDbTable.class);
+        this.mockConversionRequestTable = mock(DynamoDbTable.class);
 
         this.mockHandlerComponent = mockStatic(HandlerComponent.class);
         HandlerComponent mockDaggerHandlerComponent = mock(HandlerComponent.class);
 
         when(mockDaggerHandlerComponent.sessionDynamoDbTable()).thenReturn(this.mockSessionTable);
+        when(mockDaggerHandlerComponent.conversionRequestDynamoDbTable()).thenReturn(this.mockConversionRequestTable);
         when(HandlerComponent.create()).thenReturn(mockDaggerHandlerComponent);
         when(this.mockContext.getLogger()).thenReturn(this.mockLambdaLogger);
 
@@ -52,6 +56,7 @@ public class CreateSessionHandlerTest {
     public void handleRequest_ValidInput_CreatesSession() {
         this.createSessionHandler.handleRequest(Maps.newHashMap(), this.mockContext);
         verify(this.mockSessionTable).putItem(any(Session.class));
+        verify(this.mockConversionRequestTable).putItem(any(ConversionRequest.class));
     }
 
     @Test

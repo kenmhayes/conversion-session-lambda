@@ -1,8 +1,5 @@
 package conversionsession.model;
 
-import java.io.Serializable;
-import java.time.Instant;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -10,14 +7,21 @@ import lombok.NoArgsConstructor;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
 
+import java.io.Serializable;
+import java.time.Instant;
+
 @AllArgsConstructor
 @Builder
 @Data
 @DynamoDbBean
 @NoArgsConstructor
-public class Session implements Serializable {
+public class ConversionRequest implements Serializable {
     private String id;
-    private String emailAddress;
+    private String sessionId;
+    private String fileName;
+    private String originalFileFormat;
+    private String convertedFileFormat;
+    private String conversionStatus;
     private Instant expirationTime;
 
     @DynamoDbPartitionKey

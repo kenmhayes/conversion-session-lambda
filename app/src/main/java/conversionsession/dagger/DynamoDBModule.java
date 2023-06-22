@@ -1,5 +1,6 @@
 package conversionsession.dagger;
 
+import conversionsession.model.ConversionRequest;
 import conversionsession.model.Session;
 import dagger.Module;
 import dagger.Provides;
@@ -32,5 +33,19 @@ public abstract class DynamoDBModule {
             DynamoDbEnhancedClient dynamoDbEnhancedClient, TableSchema<Session> sessionTableSchema
     ) {
         return dynamoDbEnhancedClient.table(System.getenv().get("SessionTableName"), sessionTableSchema);
+    }
+
+    @Provides
+    public static TableSchema<ConversionRequest> getConversionRequestTableSchema() {
+        return TableSchema.fromBean(ConversionRequest.class);
+    }
+
+    @Provides
+    public static DynamoDbTable<ConversionRequest> getConversionRequestTable(
+            DynamoDbEnhancedClient dynamoDbEnhancedClient,
+            TableSchema<ConversionRequest> conversionRequestTableSchema
+    ) {
+        return dynamoDbEnhancedClient.table(
+                System.getenv().get("ConversionRequestTableName"), conversionRequestTableSchema);
     }
 }
