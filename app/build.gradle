@@ -23,6 +23,7 @@ dependencies {
 
     // This dependency is used by the application.
     implementation 'com.amazonaws:aws-lambda-java-core:1.2.2'
+    implementation 'com.amazonaws:aws-lambda-java-events:3.11.2'
     implementation 'software.amazon.awssdk:dynamodb:2.20.89'
     implementation 'software.amazon.awssdk:dynamodb-enhanced:2.20.89'
     implementation 'com.google.dagger:dagger:2.46.1'

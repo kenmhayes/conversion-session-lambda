@@ -3,19 +3,19 @@ package conversionsession.handler;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
+import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
+import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
 import conversionsession.dagger.HandlerComponent;
 import conversionsession.model.ConversionRequest;
 import conversionsession.model.ConversionStatus;
-import conversionsession.model.Response;
 import conversionsession.model.Session;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 
 import java.time.Instant;
 import java.time.Period;
-import java.util.Map;
 import java.util.UUID;
 
-public class CreateSessionHandler implements RequestHandler<Map<String, Object>, Response> {
+public class CreateSessionHandler implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
     private DynamoDbTable<Session> sessionDynamoDbTable;
     private DynamoDbTable<ConversionRequest> conversionRequestDynamoDbTable;
 
@@ -25,7 +25,7 @@ public class CreateSessionHandler implements RequestHandler<Map<String, Object>,
         this.conversionRequestDynamoDbTable = handlerComponent.conversionRequestDynamoDbTable();
     }
     @Override
-    public Response handleRequest(Map<String,Object> event, Context context)
+    public APIGatewayProxyResponseEvent handleRequest(APIGatewayProxyRequestEvent event, Context context)
     {
         LambdaLogger logger = context.getLogger();
 
@@ -56,6 +56,8 @@ public class CreateSessionHandler implements RequestHandler<Map<String, Object>,
             logger.log(e.getMessage());
         }
 
-        return Response.builder().statusCode("200").build();
+        APIGatewayProxyResponseEvent response = new APIGatewayProxyResponseEvent();
+        response.setStatusCode(200);
+        return response;
     }
 }

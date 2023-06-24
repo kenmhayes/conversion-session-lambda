@@ -1,10 +1,12 @@
 package conversionsession.handler;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
-import com.google.common.collect.Maps;
+import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
+import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
 import conversionsession.dagger.HandlerComponent;
 import conversionsession.model.ConversionRequest;
 import conversionsession.model.Session;
@@ -13,9 +15,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
-import software.amazon.awssdk.services.dynamodb.model.DynamoDbException;
 
 public class CreateSessionHandlerTest {
+    private APIGatewayProxyRequestEvent TEST_EVENT = new APIGatewayProxyRequestEvent();
     private CreateSessionHandler createSessionHandler;
     private MockedStatic mockHandlerComponent;
     private Context mockContext;
@@ -54,17 +56,20 @@ public class CreateSessionHandlerTest {
 
     @Test
     public void handleRequest_ValidInput_CreatesSession() {
-        this.createSessionHandler.handleRequest(Maps.newHashMap(), this.mockContext);
+        APIGatewayProxyResponseEvent response = this.createSessionHandler.handleRequest(TEST_EVENT, this.mockContext);
         verify(this.mockSessionTable).putItem(any(Session.class));
         verify(this.mockConversionRequestTable).putItem(any(ConversionRequest.class));
+
+        assertEquals(200, response.getStatusCode());
     }
 
     @Test
     public void handleRequest_DynamoDBException_LogsErrorMessage() {
         String errorMessage = "This is an error";
         doThrow(new RuntimeException(errorMessage)).when(this.mockSessionTable).putItem(any(Session.class));
-        this.createSessionHandler.handleRequest(Maps.newHashMap(), this.mockContext);
+        APIGatewayProxyResponseEvent response = this.createSessionHandler.handleRequest(TEST_EVENT, this.mockContext);
 
         verify(this.mockLambdaLogger).log(errorMessage);
+        assertEquals(200, response.getStatusCode());
     }
 }
