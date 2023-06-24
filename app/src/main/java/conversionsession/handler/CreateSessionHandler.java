@@ -6,6 +6,7 @@ import com.amazonaws.services.lambda.runtime.RequestHandler;
 import conversionsession.dagger.HandlerComponent;
 import conversionsession.model.ConversionRequest;
 import conversionsession.model.ConversionStatus;
+import conversionsession.model.Response;
 import conversionsession.model.Session;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 
@@ -14,7 +15,7 @@ import java.time.Period;
 import java.util.Map;
 import java.util.UUID;
 
-public class CreateSessionHandler implements RequestHandler<Map<String, Object>, Void> {
+public class CreateSessionHandler implements RequestHandler<Map<String, Object>, Response> {
     private DynamoDbTable<Session> sessionDynamoDbTable;
     private DynamoDbTable<ConversionRequest> conversionRequestDynamoDbTable;
 
@@ -24,7 +25,7 @@ public class CreateSessionHandler implements RequestHandler<Map<String, Object>,
         this.conversionRequestDynamoDbTable = handlerComponent.conversionRequestDynamoDbTable();
     }
     @Override
-    public Void handleRequest(Map<String,Object> event, Context context)
+    public Response handleRequest(Map<String,Object> event, Context context)
     {
         LambdaLogger logger = context.getLogger();
 
@@ -55,6 +56,6 @@ public class CreateSessionHandler implements RequestHandler<Map<String, Object>,
             logger.log(e.getMessage());
         }
 
-        return null;
+        return Response.builder().statusCode("200").build();
     }
 }

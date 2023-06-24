@@ -18,6 +18,12 @@ Parameters:
   LambdaSourceKey:
     Type: String
     Default: 'ConversionSessionLambda-0.1.0.zip'
+  RestAPIName:
+    Type: String
+    Default: 'ConversionSession'
+  RestAPIProdStageName:
+    Type: String
+    Default: 'Prod'
 
 Resources:
   LambdaExecutionRole:
@@ -77,6 +83,89 @@ Resources:
       Role: !GetAtt 'LambdaExecutionRole.Arn'
       Runtime: 'java11'
       Timeout: 300
+  RestAPI:
+    Type: 'AWS::ApiGateway::RestApi'
+    Properties:
+      Name: !Ref RestAPIName
+  CreateSessionResource:
+    Type: 'AWS::ApiGateway::Resource'
+    DependsOn: 'RestAPI'
+    Properties:
+      RestApiId: !Ref RestAPI
+      ParentId: !GetAtt 'RestAPI.RootResourceId'
+      PathPart: 'createsession'
+  CreateSessionMethod:
+    Type: 'AWS::ApiGateway::Method'
+    DependsOn: 'CreateSessionResource'
+    Properties:
+      AuthorizationType: 'AWS_IAM'
+      HttpMethod: 'ANY'
+      Integration:
+        IntegrationHttpMethod: 'POST'
+        Type: 'AWS_PROXY'
+        Uri: !Sub
+          - 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Arn}/invocations'
+          - Arn: !GetAtt 'CreateSessionLambdaFunction.Arn'
+      RestApiId: !Ref RestAPI
+      ResourceId: !Ref CreateSessionResource
+  CreateSessionOptions:
+    Type: 'AWS::ApiGateway::Method'
+    DependsOn: 'CreateSessionResource'
+    Properties:
+      AuthorizationType: 'NONE'
+      HttpMethod: 'OPTIONS'
+      Integration:
+        Type: 'MOCK'
+        IntegrationResponses:
+          - ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'OPTIONS,POST'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+            ResponseTemplates:
+              application/json: ''
+            StatusCode: '200'
+        PassthroughBehavior: 'WHEN_NO_MATCH'
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+      MethodResponses:
+        - StatusCode: 200
+          ResponseModels:
+            application/json: 'Empty'
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: false
+            method.response.header.Access-Control-Allow-Methods: false
+            method.response.header.Access-Control-Allow-Origin: false
+      RestApiId: !Ref RestAPI
+      ResourceId: !Ref CreateSessionResource
+  RestAPIDeployment:
+    DependsOn: 'CreateSessionMethod'
+    Type: 'AWS::ApiGateway::Deployment'
+    Properties:
+      RestApiId: !Ref RestAPI
+      StageName: !Ref RestAPIProdStageName
+  CreateSessionLambdaPermissions:
+    Type: 'AWS::Lambda::Permission'
+    DependsOn:
+      - 'CreateSessionLambdaFunction'
+      - 'CreateSessionMethod'
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName: !Ref CreateSessionLambdaFunctionName
+      Principal: 'apigateway.amazonaws.com'
+      SourceAccount: !Sub '${AWS::AccountId}'
+      SourceArn:
+        Fn::Join:
+          - ''
+          - - 'arn:'
+            - !Ref AWS::Partition
+            - ":execute-api:"
+            - !Ref AWS::Region
+            - ":"
+            - !Ref AWS::AccountId
+            - ":"
+            - !Ref RestAPI
+            - "/*/*/*"
+
 
 
 
