@@ -10,6 +10,9 @@ import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
+/**
+ * Dagger module for providing classes related to AWS DynamoDB
+ */
 @Module
 public abstract class DynamoDBModule {
 

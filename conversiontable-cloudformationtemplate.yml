@@ -24,6 +24,7 @@ Resources:
           Projection:
             NonKeyAttributes:
               - 'id'
+              - 'conversionStatus'
             ProjectionType: 'INCLUDE'
           ProvisionedThroughput:
             ReadCapacityUnits: 5

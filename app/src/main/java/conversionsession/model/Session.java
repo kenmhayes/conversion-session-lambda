@@ -18,7 +18,7 @@ import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbParti
 public class Session implements Serializable {
     private String id;
     private String emailAddress;
-    private Instant expirationTime;
+    private long expirationTime;
 
     @DynamoDbPartitionKey
     public String getId() { return this.id; }

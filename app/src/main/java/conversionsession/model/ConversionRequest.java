@@ -22,7 +22,7 @@ public class ConversionRequest implements Serializable {
     private String originalFileFormat;
     private String convertedFileFormat;
     private String conversionStatus;
-    private Instant expirationTime;
+    private long expirationTime;
 
     @DynamoDbPartitionKey
     public String getId() { return this.id; }
