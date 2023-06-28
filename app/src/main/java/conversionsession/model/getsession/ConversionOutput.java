@@ -1,4 +1,4 @@
-package conversionsession.model;
+package conversionsession.model.getsession;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -9,6 +9,8 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class CreateSessionResponseBody {
-    private String sessionId;
+public class ConversionOutput {
+    private String id;
+    private String fileName;
+    private String conversionStatus;
 }

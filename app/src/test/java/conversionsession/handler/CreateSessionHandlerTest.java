@@ -11,6 +11,9 @@ import com.google.common.collect.ImmutableMap;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import conversionsession.dagger.HandlerComponent;
 import conversionsession.model.*;
+import conversionsession.model.createsession.ConversionInput;
+import conversionsession.model.createsession.CreateSessionInput;
+import conversionsession.model.createsession.CreateSessionResponseBody;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,7 +34,7 @@ public class CreateSessionHandlerTest {
     private Context mockContext;
     private LambdaLogger mockLambdaLogger;
     private DynamoDbTable<Session> mockSessionTable;
-    private DynamoDbTable<ConversionRequest> mockConversionRequestTable;
+    private DynamoDbTable<Conversion> mockConversionsTable;
     private ObjectMapper mockObjectMapper;
     private MockedStatic mockUUID;
 
@@ -40,7 +43,7 @@ public class CreateSessionHandlerTest {
         this.mockContext = mock(Context.class);
         this.mockLambdaLogger = mock(LambdaLogger.class);
         this.mockSessionTable = mock(DynamoDbTable.class);
-        this.mockConversionRequestTable = mock(DynamoDbTable.class);
+        this.mockConversionsTable = mock(DynamoDbTable.class);
         this.mockObjectMapper = mock(ObjectMapper.class);
         this.mockUUID = mockStatic(UUID.class);
 
@@ -48,7 +51,7 @@ public class CreateSessionHandlerTest {
         HandlerComponent mockDaggerHandlerComponent = mock(HandlerComponent.class);
 
         when(mockDaggerHandlerComponent.sessionDynamoDbTable()).thenReturn(this.mockSessionTable);
-        when(mockDaggerHandlerComponent.conversionRequestDynamoDbTable()).thenReturn(this.mockConversionRequestTable);
+        when(mockDaggerHandlerComponent.conversionsDynamoDbTable()).thenReturn(this.mockConversionsTable);
         when(mockDaggerHandlerComponent.objectMapper()).thenReturn(this.mockObjectMapper);
         when(HandlerComponent.create()).thenReturn(mockDaggerHandlerComponent);
 
@@ -74,13 +77,13 @@ public class CreateSessionHandlerTest {
     public void handleRequest_ValidInput_CreatesSession() throws IOException {
         when(mockObjectMapper.readValue(anyString(), (Class<Object>) any())).thenReturn(
                 CreateSessionInput.builder()
-                        .conversionRequests(Arrays.asList(
-                                ConversionRequestInput.builder()
+                        .conversions(Arrays.asList(
+                                ConversionInput.builder()
                                         .fileName("test1.jpg")
                                         .originalFileFormat("jpg")
                                         .convertedFileFormat("png")
                                         .build(),
-                                ConversionRequestInput.builder()
+                                ConversionInput.builder()
                                         .fileName("test2.jpg")
                                         .originalFileFormat("jpg")
                                         .convertedFileFormat("png")
@@ -94,7 +97,7 @@ public class CreateSessionHandlerTest {
         APIGatewayProxyResponseEvent response = this.createSessionHandler.handleRequest(TEST_EVENT, this.mockContext);
 
         verify(this.mockSessionTable).putItem(any(Session.class));
-        verify(this.mockConversionRequestTable, times(2)).putItem(any(ConversionRequest.class));
+        verify(this.mockConversionsTable, times(2)).putItem(any(Conversion.class));
 
         assertEquals(200, response.getStatusCode());
         assertEquals(CORS_HEADERS, response.getHeaders());

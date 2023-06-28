@@ -5,32 +5,37 @@ import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
-import com.google.common.collect.ImmutableMap;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.Maps;
 import conversionsession.dagger.HandlerComponent;
 import conversionsession.model.*;
+import conversionsession.model.createsession.ConversionInput;
+import conversionsession.model.createsession.CreateSessionInput;
+import conversionsession.model.createsession.CreateSessionResponseBody;
+import conversionsession.util.HandlerUtils;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 
 import java.time.Instant;
 import java.time.Period;
+import java.util.Map;
 import java.util.UUID;
 
 public class CreateSessionHandler implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
     private DynamoDbTable<Session> sessionDynamoDbTable;
-    private DynamoDbTable<ConversionRequest> conversionRequestDynamoDbTable;
+    private DynamoDbTable<Conversion> conversionDynamoDbTable;
     private ObjectMapper objectMapper;
 
     public CreateSessionHandler() {
         HandlerComponent handlerComponent = HandlerComponent.create();
         this.sessionDynamoDbTable = handlerComponent.sessionDynamoDbTable();
-        this.conversionRequestDynamoDbTable = handlerComponent.conversionRequestDynamoDbTable();
+        this.conversionDynamoDbTable = handlerComponent.conversionsDynamoDbTable();
         this.objectMapper = handlerComponent.objectMapper();
     }
     @Override
     public APIGatewayProxyResponseEvent handleRequest(APIGatewayProxyRequestEvent event, Context context)
     {
         LambdaLogger logger = context.getLogger();
-        APIGatewayProxyResponseEvent response = new APIGatewayProxyResponseEvent();
+        APIGatewayProxyResponseEvent response = HandlerUtils.getProxyEventWithCORS();
 
         try {
             CreateSessionInput createSessionInput = objectMapper.readValue(event.getBody(), CreateSessionInput.class);
@@ -46,29 +51,36 @@ public class CreateSessionHandler implements RequestHandler<APIGatewayProxyReque
 
             this.sessionDynamoDbTable.putItem(newSession);
 
-            for (ConversionRequestInput input : createSessionInput.getConversionRequests()) {
-                ConversionRequest newConversionRequest = ConversionRequest.builder()
-                        .id(UUID.randomUUID().toString())
+            Map<String, String> fileNameToId = Maps.newHashMap();
+            for (ConversionInput input : createSessionInput.getConversions()) {
+                String conversionId = UUID.randomUUID().toString();
+                String fileName = input.getFileName();
+
+                Conversion newConversion = Conversion.builder()
+                        .id(conversionId)
                         .sessionId(sessionId)
-                        .fileName(input.getFileName())
+                        .fileName(fileName)
                         .originalFileFormat(input.getOriginalFileFormat())
                         .convertedFileFormat(input.getConvertedFileFormat())
                         .conversionStatus(ConversionStatus.NOT_STARTED.name())
                         .expirationTime(expirationTime)
                         .build();
 
-                this.conversionRequestDynamoDbTable.putItem(newConversionRequest);
-
-                response.setBody(objectMapper.writeValueAsString(
-                        CreateSessionResponseBody.builder().sessionId(sessionId).build()
-                ));
+                this.conversionDynamoDbTable.putItem(newConversion);
+                fileNameToId.put(fileName, conversionId);
             }
+
+            response.setBody(objectMapper.writeValueAsString(
+                    CreateSessionResponseBody.builder()
+                            .sessionId(sessionId)
+                            .fileNameToId(fileNameToId)
+                            .build()
+            ));
         } catch (Exception e) {
             logger.log(e.getMessage());
         }
 
         response.setStatusCode(200);
-        response.setHeaders(ImmutableMap.of("Access-Control-Allow-Origin", "*"));
         return response;
     }
 }

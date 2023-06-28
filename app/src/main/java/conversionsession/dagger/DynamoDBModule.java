@@ -1,11 +1,13 @@
 package conversionsession.dagger;
 
-import conversionsession.model.ConversionRequest;
+import conversionsession.Constants;
+import conversionsession.model.Conversion;
 import conversionsession.model.Session;
 import dagger.Module;
 import dagger.Provides;
 
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbIndex;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
@@ -39,16 +41,21 @@ public abstract class DynamoDBModule {
     }
 
     @Provides
-    public static TableSchema<ConversionRequest> getConversionRequestTableSchema() {
-        return TableSchema.fromBean(ConversionRequest.class);
+    public static TableSchema<Conversion> getConversionTableSchema() {
+        return TableSchema.fromBean(Conversion.class);
     }
 
     @Provides
-    public static DynamoDbTable<ConversionRequest> getConversionRequestTable(
+    public static DynamoDbTable<Conversion> getConversionRequestTable(
             DynamoDbEnhancedClient dynamoDbEnhancedClient,
-            TableSchema<ConversionRequest> conversionRequestTableSchema
+            TableSchema<Conversion> conversionRequestTableSchema
     ) {
         return dynamoDbEnhancedClient.table(
                 System.getenv().get("ConversionRequestTableName"), conversionRequestTableSchema);
+    }
+
+    @Provides
+    public static DynamoDbIndex<Conversion> getSessionIdIndex(DynamoDbTable<Conversion> conversionDynamoDbTable) {
+        return conversionDynamoDbTable.index(Constants.SESSION_INDEX_NAME);
     }
 }

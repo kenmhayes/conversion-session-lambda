@@ -12,6 +12,9 @@ Parameters:
   CreateSessionLambdaFunctionName:
     Type: String
     Default: 'CreateSession'
+  GetSessionLambdaFunctionName:
+    Type: String
+    Default: 'GetSession'
   LambdaSourceBucket:
     Type: String
     Default: 'code-artifacts-omni-file-converter'
@@ -52,6 +55,7 @@ Resources:
                 Resource:
                   - !Sub 'arn:aws:dynamodb:*:*:table/${SessionTableName}'
                   - !Sub 'arn:aws:dynamodb:*:*:table/${ConversionRequestTableName}'
+                  - !Sub 'arn:aws:dynamodb:*:*:table/${ConversionRequestTableName}/index/*'
         - PolicyName: 'CloudWatchLogs'
           PolicyDocument:
             Version: '2012-10-17'
@@ -83,6 +87,24 @@ Resources:
       Role: !GetAtt 'LambdaExecutionRole.Arn'
       Runtime: 'java11'
       Timeout: 300
+  GetSessionLambdaFunction:
+    Type: 'AWS::Lambda::Function'
+    DependsOn: 'LambdaExecutionRole'
+    Properties:
+      Code:
+        S3Bucket: !Ref LambdaSourceBucket
+        S3Key: !Ref LambdaSourceKey
+      Description: 'Gets a session and associated conversions'
+      Environment:
+        Variables:
+          SessionTableName: !Ref SessionTableName
+          ConversionRequestTableName: !Ref ConversionRequestTableName
+      Handler: 'conversionsession.handler.GetSessionHandler::handleRequest'
+      FunctionName: !Ref GetSessionLambdaFunctionName
+      MemorySize: 1024
+      Role: !GetAtt 'LambdaExecutionRole.Arn'
+      Runtime: 'java11'
+      Timeout: 300
   RestAPI:
     Type: 'AWS::ApiGateway::RestApi'
     Properties:
@@ -96,7 +118,9 @@ Resources:
       PathPart: 'createsession'
   CreateSessionMethod:
     Type: 'AWS::ApiGateway::Method'
-    DependsOn: 'CreateSessionResource'
+    DependsOn:
+      - 'CreateSessionResource'
+      - 'CreateSessionLambdaFunction'
     Properties:
       AuthorizationType: 'AWS_IAM'
       HttpMethod: 'ANY'
@@ -137,8 +161,64 @@ Resources:
             method.response.header.Access-Control-Allow-Origin: false
       RestApiId: !Ref RestAPI
       ResourceId: !Ref CreateSessionResource
+  GetSessionResource:
+    Type: 'AWS::ApiGateway::Resource'
+    DependsOn: 'RestAPI'
+    Properties:
+      RestApiId: !Ref RestAPI
+      ParentId: !GetAtt 'RestAPI.RootResourceId'
+      PathPart: 'getsession'
+  GetSessionMethod:
+    Type: 'AWS::ApiGateway::Method'
+    DependsOn:
+      - 'GetSessionResource'
+      - 'GetSessionLambdaFunction'
+    Properties:
+      AuthorizationType: 'AWS_IAM'
+      HttpMethod: 'ANY'
+      Integration:
+        IntegrationHttpMethod: 'POST'
+        Type: 'AWS_PROXY'
+        Uri: !Sub
+          - 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Arn}/invocations'
+          - Arn: !GetAtt 'GetSessionLambdaFunction.Arn'
+      RequestParameters:
+        method.request.querystring.sessionid: True
+      RestApiId: !Ref RestAPI
+      ResourceId: !Ref GetSessionResource
+  GetSessionOptions:
+    Type: 'AWS::ApiGateway::Method'
+    DependsOn: 'GetSessionResource'
+    Properties:
+      AuthorizationType: 'NONE'
+      HttpMethod: 'OPTIONS'
+      Integration:
+        Type: 'MOCK'
+        IntegrationResponses:
+          - ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'OPTIONS,POST'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+            ResponseTemplates:
+              application/json: ''
+            StatusCode: '200'
+        PassthroughBehavior: 'WHEN_NO_MATCH'
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+      MethodResponses:
+        - StatusCode: 200
+          ResponseModels:
+            application/json: 'Empty'
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: false
+            method.response.header.Access-Control-Allow-Methods: false
+            method.response.header.Access-Control-Allow-Origin: false
+      RestApiId: !Ref RestAPI
+      ResourceId: !Ref GetSessionResource
   RestAPIDeployment:
-    DependsOn: 'CreateSessionMethod'
+    DependsOn:
+      - 'CreateSessionMethod'
+      - 'GetSessionMethod'
     Type: 'AWS::ApiGateway::Deployment'
     Properties:
       RestApiId: !Ref RestAPI
@@ -151,6 +231,28 @@ Resources:
     Properties:
       Action: 'lambda:InvokeFunction'
       FunctionName: !Ref CreateSessionLambdaFunctionName
+      Principal: 'apigateway.amazonaws.com'
+      SourceAccount: !Sub '${AWS::AccountId}'
+      SourceArn:
+        Fn::Join:
+          - ''
+          - - 'arn:'
+            - !Ref AWS::Partition
+            - ":execute-api:"
+            - !Ref AWS::Region
+            - ":"
+            - !Ref AWS::AccountId
+            - ":"
+            - !Ref RestAPI
+            - "/*/*/*"
+  GetSessionLambdaPermissions:
+    Type: 'AWS::Lambda::Permission'
+    DependsOn:
+      - 'GetSessionLambdaFunction'
+      - 'GetSessionMethod'
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName: !Ref GetSessionLambdaFunctionName
       Principal: 'apigateway.amazonaws.com'
       SourceAccount: !Sub '${AWS::AccountId}'
       SourceArn:

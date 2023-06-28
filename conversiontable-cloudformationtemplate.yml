@@ -24,6 +24,7 @@ Resources:
           Projection:
             NonKeyAttributes:
               - 'id'
+              - 'fileName'
               - 'conversionStatus'
             ProjectionType: 'INCLUDE'
           ProvisionedThroughput:

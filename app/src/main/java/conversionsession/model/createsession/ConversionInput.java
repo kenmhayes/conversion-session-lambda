@@ -1,4 +1,4 @@
-package conversionsession.model;
+package conversionsession.model.createsession;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,7 +11,7 @@ import java.io.Serializable;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class ConversionRequestInput implements Serializable  {
+public class ConversionInput implements Serializable  {
     private String fileName;
     private String originalFileFormat;
     private String convertedFileFormat;
