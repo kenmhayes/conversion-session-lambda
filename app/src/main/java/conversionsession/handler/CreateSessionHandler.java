@@ -62,7 +62,7 @@ public class CreateSessionHandler implements RequestHandler<APIGatewayProxyReque
                         .fileName(fileName)
                         .originalFileFormat(input.getOriginalFileFormat())
                         .convertedFileFormat(input.getConvertedFileFormat())
-                        .conversionStatus(ConversionStatus.NOT_STARTED.name())
+                        .conversionStatus(ConversionStatus.COMPLETED.name())
                         .expirationTime(expirationTime)
                         .build();
 

@@ -26,6 +26,8 @@ Resources:
               - 'id'
               - 'fileName'
               - 'conversionStatus'
+              - 'convertedFileFormat'
+              - 'originalFileFormat'
             ProjectionType: 'INCLUDE'
           ProvisionedThroughput:
             ReadCapacityUnits: 5

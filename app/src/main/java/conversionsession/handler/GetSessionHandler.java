@@ -55,6 +55,8 @@ public class GetSessionHandler implements RequestHandler<APIGatewayProxyRequestE
                                     .fileName(conversion.getFileName())
                                     .id(conversion.getId())
                                     .conversionStatus(conversion.getConversionStatus())
+                                    .originalFileFormat(conversion.getOriginalFileFormat())
+                                    .convertedFileFormat(conversion.getConvertedFileFormat())
                                     .build()
                             ))
                 .collect(Collectors.toList());

@@ -13,4 +13,6 @@ public class ConversionOutput {
     private String id;
     private String fileName;
     private String conversionStatus;
+    private String originalFileFormat;
+    private String convertedFileFormat;
 }
